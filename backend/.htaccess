@@ -1,0 +1,23 @@
+# Enable CORS for specific origins
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "https://your-image-to-word-frontend.netlify.app"
+    Header always set Access-Control-Allow-Methods "POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type"
+</IfModule>
+
+# Handle preflight requests
+RewriteEngine On
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# Serve Word documents with correct MIME type
+<FilesMatch "\.docx$">
+    Header set Content-Type application/vnd.openxmlformats-officedocument.wordprocessingml.document
+</FilesMatch>
+
+# Increase file upload and processing limits
+php_value upload_max_filesize 10M
+php_value post_max_size 10M
+php_value memory_limit 256M
+php_value max_execution_time 120
+php_value max_input_time 120

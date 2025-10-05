@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Word Converter | Extract Text to DOCX</title>
+    <meta name="description" content="Convert images to Microsoft Word documents. Extract text from JPG, PNG, GIF and download as editable .docx files.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🖼️ → 📄 Image to Word Converter</h1>
+            <p>Convert images to editable Microsoft Word documents in one click</p>
+        </header>
+
+        <main>
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div class="upload-card">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-content">
+                            <div class="upload-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14,2 14,8 20,8"></polyline>
+                                    <path d="M16 13H8"></path>
+                                    <path d="M16 17H8"></path>
+                                    <path d="M10 9H8"></path>
+                                </svg>
+                            </div>
+                            <h3>Drop your image here</h3>
+                            <p>Supports JPG, PNG, GIF, BMP, WebP</p>
+                            <span>or</span>
+                            <button class="browse-btn">Choose Image File</button>
+                        </div>
+                        <input type="file" id="fileInput" accept="image/*" hidden>
+                    </div>
+
+                    <div class="preview-section" id="previewSection" style="display: none;">
+                        <div class="preview-container">
+                            <div class="image-preview">
+                                <img id="previewImage" src="" alt="Image Preview">
+                                <div class="image-info">
+                                    <p><strong>File:</strong> <span id="fileName">-</span></p>
+                                    <p><strong>Size:</strong> <span id="fileSize">-</span></p>
+                                    <p><strong>Dimensions:</strong> <span id="imageDimensions">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conversion Options -->
+            <div class="options-section">
+                <div class="options-card">
+                    <h3>Conversion Options</h3>
+                    
+                    <div class="options-grid">
+                        <div class="option-group">
+                            <label for="documentTitle">Document Title</label>
+                            <input type="text" id="documentTitle" placeholder="Enter document title..." value="Extracted Document">
+                        </div>
+
+                        <div class="option-group">
+                            <label for="language">Text Language</label>
+                            <select id="language">
+                                <option value="eng">English</option>
+                                <option value="spa">Spanish</option>
+                                <option value="fre">French</option>
+                                <option value="ger">German</option>
+                                <option value="ita">Italian</option>
+                                <option value="por">Portuguese</option>
+                                <option value="rus">Russian</option>
+                                <option value="chi_sim">Chinese</option>
+                                <option value="jpn">Japanese</option>
+                                <option value="ara">Arabic</option>
+                            </select>
+                        </div>
+
+                        <div class="option-group">
+                            <label for="formatting">Text Formatting</label>
+                            <select id="formatting">
+                                <option value="preserve">Preserve Line Breaks</option>
+                                <option value="paragraph">Convert to Paragraphs</option>
+                                <option value="raw">Raw Text</option>
+                            </select>
+                        </div>
+
+                        <div class="option-group">
+                            <label for="fontSize">Font Size</label>
+                            <select id="fontSize">
+                                <option value="10">10pt (Small)</option>
+                                <option value="11">11pt (Normal)</option>
+                                <option value="12" selected>12pt (Standard)</option>
+                                <option value="14">14pt (Large)</option>
+                                <option value="16">16pt (Extra Large)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="advanced-options">
+                        <div class="option-group checkbox-group">
+                            <input type="checkbox" id="includeImage" checked>
+                            <label for="includeImage">Include original image in document</label>
+                        </div>
+
+                        <div class="option-group checkbox-group">
+                            <input type="checkbox" id="addTimestamp" checked>
+                            <label for="addTimestamp">Add conversion timestamp</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="actions-section">
+                <button id="convertBtn" class="convert-btn" disabled>
+                    <span class="btn-icon">📄</span>
+                    Convert to Word Document
+                </button>
+                <div class="action-info">
+                    <p>✨ Converts image text to editable .docx format</p>
+                </div>
+            </div>
+
+            <!-- Result Section -->
+            <div class="result-section" id="resultSection" style="display: none;">
+                <div class="result-card">
+                    <div class="result-header">
+                        <h3>✅ Conversion Successful!</h3>
+                        <p>Your image has been converted to a Word document</p>
+                    </div>
+                    
+                    <div class="result-content">
+                        <div class="document-preview">
+                            <div class="doc-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="#2b5797">
+                                    <path d="M14,2H6A2,2,0,0,0,4,4V20a2,2,0,0,0,2,2H18a2,2,0,0,0,2-2V8ZM18,20H6V4h7V9h5Z"/>
+                                </svg>
+                            </div>
+                            <div class="doc-info">
+                                <h4 id="outputFileName">document.docx</h4>
+                                <p id="outputFileSize">-</p>
+                                <p id="conversionInfo">-</p>
+                            </div>
+                        </div>
+
+                        <div class="download-actions">
+                            <button id="downloadBtn" class="download-btn">
+                                <span class="btn-icon">⬇️</span>
+                                Download Word Document
+                            </button>
+                            <button id="convertAnotherBtn" class="secondary-btn">
+                                Convert Another Image
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <h3>Converting to Word Document</h3>
+                <p>Extracting text and generating .docx file...</p>
+                <div class="progress-bar">
+                    <div class="progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Image to Word Converter &copy; 2023 | Powered by Tesseract OCR & PHPWord</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
