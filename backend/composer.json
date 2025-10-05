@@ -7,7 +7,13 @@
         "phpoffice/phpword": "^0.18.0"
     },
     "require-dev": {
-        "ext-gd": "*"
+        "ext-gd": "*",
+        "ext-zip": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "PhpOffice\\PhpWord\\": "vendor/phpoffice/phpword/src/PhpWord/"
+        }
     },
     "authors": [
         {
@@ -15,5 +21,9 @@
             "email": "your.email@example.com"
         }
     ],
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "config": {
+        "optimize-autoloader": true,
+        "process-timeout": 600
+    }
 }
