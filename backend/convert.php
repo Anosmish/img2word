@@ -2,7 +2,7 @@
 header('Content-Type: application/json');
 
 // Enable CORS for Netlify frontend
-header('Access-Control-Allow-Origin: https://your-image-to-word-frontend.netlify.app');
+header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
@@ -39,7 +39,7 @@ if ($fontSize < 8 || $fontSize > 72) {
 }
 
 // Check if the uploaded file is an image
-$imageInfo = getimagesize($uploadedFile['tmp_name']);
+$imageInfo = @getimagesize($uploadedFile['tmp_name']);
 if (!$imageInfo) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Uploaded file is not a valid image']);
@@ -47,9 +47,9 @@ if (!$imageInfo) {
 }
 
 // Check file size
-if ($uploadedFile['size'] > 8 * 1024 * 1024) {
+if ($uploadedFile['size'] > 20 * 1024 * 1024) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'File size too large. Maximum 8MB allowed.']);
+    echo json_encode(['success' => false, 'error' => 'File size too large. Maximum 20MB allowed.']);
     exit;
 }
 
@@ -63,8 +63,10 @@ try {
     }
 
     // Save uploaded image temporarily
-    $imagePath = 'uploads/' . uniqid() . '_' . $uploadedFile['name'];
-    move_uploaded_file($uploadedFile['tmp_name'], $imagePath);
+    $imagePath = 'uploads/' . uniqid() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $uploadedFile['name']);
+    if (!move_uploaded_file($uploadedFile['tmp_name'], $imagePath)) {
+        throw new Exception('Failed to save uploaded file');
+    }
 
     // Perform OCR to extract text
     $extractedText = performOCR($imagePath, $language);
@@ -80,7 +82,7 @@ try {
     ]);
 
     // Clean up temporary image
-    unlink($imagePath);
+    @unlink($imagePath);
 
     // Return success with file information
     echo json_encode([
@@ -93,14 +95,19 @@ try {
     ]);
 
 } catch (Exception $e) {
+    // Clean up on error
+    if (isset($imagePath) && file_exists($imagePath)) {
+        @unlink($imagePath);
+    }
+    
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Conversion failed: ' . $e->getMessage()]);
 }
 
 function performOCR($imagePath, $language) {
     // Check if Tesseract is available
-    $tesseractAvailable = shell_exec('which tesseract');
-    if (!$tesseractAvailable) {
+    $tesseractCheck = shell_exec('which tesseract');
+    if (empty($tesseractCheck)) {
         throw new Exception('Tesseract OCR is not installed on the server');
     }
     
@@ -117,18 +124,18 @@ function performOCR($imagePath, $language) {
     
     // Execute OCR
     $output = shell_exec($command);
-    $exitCode = 0;
     
-    // Check if command was successful
-    if ($exitCode !== 0) {
-        throw new Exception("Tesseract failed with output: " . $output);
+    // Check if output file was created
+    if (!file_exists($outputFile . '.txt')) {
+        throw new Exception("OCR failed: Output file not created. Command output: " . $output);
     }
     
     // Read the output text
     $text = file_get_contents($outputFile . '.txt');
     
     // Clean up temporary files
-    unlink($outputFile . '.txt');
+    @unlink($outputFile . '.txt');
+    @unlink($outputFile);
     
     if ($text === false) {
         throw new Exception('Could not read OCR output');
@@ -138,6 +145,10 @@ function performOCR($imagePath, $language) {
 }
 
 function formatText($text, $formatting) {
+    if (empty($text)) {
+        return 'No text could be extracted from the image.';
+    }
+    
     switch ($formatting) {
         case 'paragraph':
             // Replace multiple newlines with paragraph breaks
@@ -160,7 +171,11 @@ function formatText($text, $formatting) {
 }
 
 function generateWordDocument($title, $text, $imagePath, $options) {
-    // Load PhpWord
+    // Check if PHPWord is available
+    if (!file_exists('vendor/autoload.php')) {
+        throw new Exception('PHPWord dependencies not found. Please run composer install.');
+    }
+    
     require_once 'vendor/autoload.php';
     
     $phpWord = new \PhpOffice\PhpWord\PhpWord();
@@ -184,16 +199,29 @@ function generateWordDocument($title, $text, $imagePath, $options) {
         $section->addTextBreak(1);
     }
     
-    // Add image if requested and if it's not too large
-    if ($options['includeImage']) {
+    // Add image if requested
+    if ($options['includeImage'] && file_exists($imagePath)) {
         try {
-            $imageInfo = getimagesize($imagePath);
-            if ($imageInfo && $imageInfo[0] <= 800 && $imageInfo[1] <= 600) {
+            $imageInfo = @getimagesize($imagePath);
+            if ($imageInfo) {
+                // Calculate dimensions to fit within page
+                $maxWidth = 400;
+                $maxHeight = 300;
+                
+                $width = $imageInfo[0];
+                $height = $imageInfo[1];
+                
+                if ($width > $maxWidth || $height > $maxHeight) {
+                    $ratio = min($maxWidth/$width, $maxHeight/$height);
+                    $width = $width * $ratio;
+                    $height = $height * $ratio;
+                }
+                
                 $section->addImage(
                     $imagePath,
                     [
-                        'width' => 400,
-                        'height' => 300,
+                        'width' => $width,
+                        'height' => $height,
                         'alignment' => 'center'
                     ]
                 );
@@ -203,6 +231,7 @@ function generateWordDocument($title, $text, $imagePath, $options) {
             }
         } catch (Exception $e) {
             // If image can't be added, continue without it
+            error_log("Could not add image to Word document: " . $e->getMessage());
         }
     }
     
@@ -220,25 +249,24 @@ function generateWordDocument($title, $text, $imagePath, $options) {
         }
     }
     
-    // Add document info
-    $section->addPageBreak();
-    $section->addText('Document Information', ['bold' => true, 'size' => $options['fontSize'] + 2]);
-    $section->addTextBreak(1);
-    $section->addText("Generated by: Image to Word Converter");
-    $section->addText("Generation date: " . date('Y-m-d H:i:s'));
-    $section->addText("Total words: " . str_word_count($text));
-    $section->addText("Total characters: " . strlen($text));
-    
     // Generate filename and path
     $safeTitle = preg_replace('/[^a-zA-Z0-9-_]/', '_', $title);
-    $filename = $safeTitle . '_' . uniqid() . '.docx';
+    $filename = $safeTitle . '_' . date('Y-m-d_H-i-s') . '.docx';
     $filepath = 'output/' . $filename;
     
     // Save document
-    $phpWord->save($filepath);
+    try {
+        $phpWord->save($filepath);
+    } catch (Exception $e) {
+        throw new Exception('Failed to save Word document: ' . $e->getMessage());
+    }
     
     // Get file size
     $fileSize = filesize($filepath);
+    
+    if ($fileSize === false) {
+        throw new Exception('Failed to get file size of generated document');
+    }
     
     return [
         'filename' => $filename,
