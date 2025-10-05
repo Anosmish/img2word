@@ -2,9 +2,10 @@
 header('Content-Type: application/json');
 
 // Enable CORS for Netlify frontend
-header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Origin: https://imgtoword.netlify.app');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
+
 
 // Handle preflight request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
